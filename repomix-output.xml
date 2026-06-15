@@ -1,0 +1,616 @@
+This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching these patterns are excluded: node_modules, .env, *.log
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+app.js
+controller/jobs.js
+controller/user.js
+db/connect.js
+errors/badRequest.js
+errors/customError.js
+errors/notFound.js
+errors/unauthenticated.js
+middleware/authenticator.js
+middleware/errorHandler.js
+middleware/notFound.js
+model/jobs.js
+model/user.js
+package.json
+routes/jobRoute.js
+routes/userRoute.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".gitignore">
+node_modules
+.env
+.env.local
+.env.production
+</file>
+
+<file path="app.js">
+const express = require("express");
+const app = express();
+const jobRouter = require("./routes/jobRoute");
+const userRouter = require("./routes/userRoute");
+const notFound = require("./middleware/notFound");
+const errorHandler = require("./middleware/errorHandler");
+const connect = require("./db/connect");
+require("dotenv").config();
+const cookieParser = require("cookie-parser");
+const helmet = require("helmet");
+const cors = require("cors");
+
+//Security
+app.use(helmet());
+//CORS Application
+app.use(cors());
+
+app.use(express.json());
+app.use(cookieParser()); //For saving token cookie for verification access
+app.use("/api/v1/jobs", jobRouter);
+app.use("/api/v1/auth", userRouter);
+app.use(notFound);
+app.use(errorHandler);
+
+const dbUrl = process.env.MONGOOSE_URL;
+const port = process.env.PORT || 3000;
+
+const startapp = async () => {
+  try {
+    await connect(dbUrl);
+    console.log("Database connected successfully");
+    app.listen(port, console.log(`App listening on port ${port}`));
+  } catch (err) {
+    console.log(err);
+  }
+};
+startapp();
+</file>
+
+<file path="controller/jobs.js">
+const { StatusCodes } = require("http-status-codes");
+const Job = require("../model/jobs");
+const BadRequest = require("../errors/badRequest");
+const NotFound = require("../errors/notFound");
+const mongoose = require("mongoose");
+const moment = require("moment");
+const getAllJobs = async (req, res) => {
+  const { search, status, jobtype, sort, page, limit } = req.query;
+  const filterObj = {
+    createdBy: req.user.userId,
+  };
+  if (search) {
+    filterObj.position = { $regex: search, $options: "i" };
+  }
+  if (status && status !== "all") {
+    filterObj.status = status;
+  }
+  if (jobtype && jobtype !== "all") {
+    filterObj.jobType = jobtype;
+  }
+  let result = Job.find(filterObj);
+  if (sort === "latest") {
+    result = result.sort("-createdAt");
+  }
+  if (sort === "oldest") {
+    result = result.sort("createdAt");
+  }
+  if (sort === "a-z") {
+    result = result.sort("position");
+  }
+  if (sort === "z-a") {
+    result = result.sort("-position");
+  }
+  const currentPage = page * 1 || 1;
+  const currentLimit = limit * 1 || 10;
+  const skip = (currentPage - 1) * currentLimit;
+  result = result.skip(skip).limit(currentLimit);
+  const jobs = await result;
+  const totalJobs = await Job.countDocuments(filterObj);
+  const numOfPages = Math.ceil(totalJobs / currentLimit);
+  res.status(StatusCodes.OK).json({ jobs, totalJobs, numOfPages });
+};
+const createJob = async (req, res) => {
+  const { company, position, status, jobType, jobLocation } = req.body;
+  if (!company || !position) {
+    throw new BadRequest("Please provide company name and position");
+  }
+  const job = await Job.create({
+    company: company,
+    position: position,
+    status: status,
+    jobType: jobType,
+    createdBy: req.user.userId,
+    jobLocation: jobLocation,
+  });
+  res.status(StatusCodes.CREATED).json({ job });
+};
+const getOneJob = async (req, res) => {
+  const { id: jobId } = req.params;
+  const job = await Job.findOne({ createdBy: req.user.userId, _id: jobId });
+  if (!job) {
+    throw new NotFound(`Job with ID: ${jobId} not found`);
+  }
+  res.status(StatusCodes.OK).json({ job });
+};
+const updateJob = async (req, res) => {
+  const {
+    body: { company, position },
+    user: { userId },
+    params: { id: jobId },
+  } = req;
+  if (!company || !position) {
+    throw new BadRequest("Provide company name and position");
+  }
+  const job = await Job.findOneAndUpdate(
+    { _id: jobId, createdBy: userId },
+    req.body,
+    {
+      runValidators: true,
+      returnDocument: "after",
+    },
+  );
+  if (!job) {
+    throw new NotFound(`Job with ID: ${jobId} not found`);
+  }
+  res.status(StatusCodes.OK).json({ job });
+};
+const deleteJob = async (req, res) => {
+  const {
+    params: { id: jobId },
+    user: { userId },
+  } = req;
+  const job = await Job.findOneAndDelete({ _id: jobId, createdBy: userId });
+  if (!job) {
+    throw new NotFound(`Job with ID: ${jobId} not found`);
+  }
+  res.status(StatusCodes.NO_CONTENT).send();
+};
+const showStat = async (req, res) => {
+  let stats = await Job.aggregate([
+    {
+      $match: { createdBy: new mongoose.Types.ObjectId(req.user.userId) },
+    },
+    { $group: { _id: "$status", count: { $sum: 1 } } },
+  ]);
+  stats = stats.reduce((accumulator, currentValue) => {
+    const { _id: title, count } = currentValue;
+    accumulator[title] = count;
+    return accumulator;
+  }, {});
+  const defaultStats = {
+    interview: stats.interview || 0,
+    pending: stats.pending || 0,
+    declined: stats.declined || 0,
+  };
+  let monthlyApplication = await Job.aggregate([
+    { $match: { createdBy: new mongoose.Types.ObjectId(req.user.userId) } },
+    {
+      $group: {
+        _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { "_id.year": -1, "_id.month": -1 } },
+    { $limit: 6 },
+  ]);
+  monthlyApplication = monthlyApplication
+    .map((item) => {
+      const {
+        _id: { year, month },
+        count,
+      } = item;
+      const date = moment()
+        .month(month - 1)
+        .year(year)
+        .format("MM YY");
+      return { date, count };
+    })
+    .reverse();
+  res.status(StatusCodes.OK).json({ defaultStats, monthlyApplication });
+};
+module.exports = {
+  getAllJobs,
+  createJob,
+  getOneJob,
+  updateJob,
+  deleteJob,
+  showStat,
+};
+const obj = {
+  company: "Rogahn-Johnson",
+  position: "Internal Auditor",
+  status: "declined",
+  jobType: "part-time",
+  createdBy: "62f801d0510a7c1ed2312d52",
+  createdAt: "2021-09-11T10:13:12Z",
+};
+</file>
+
+<file path="controller/user.js">
+const User = require("../model/user");
+const { StatusCodes } = require("http-status-codes");
+const Unauthenticated = require("../errors/unauthenticated");
+const BadRequest = require("../errors/badRequest");
+const NotFound = require("../errors/notFound");
+
+const register = async (req, res) => {
+  const user = await User.create(req.body);
+  const token = user.createJWT();
+  res.status(StatusCodes.CREATED).json({ user, token });
+};
+const login = async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    throw new Unauthenticated("Invalid login details");
+  }
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new Unauthenticated("Invalid login details");
+  }
+  const passwordIsvalid = await user.comparePassword(password);
+  if (!passwordIsvalid) {
+    throw new Unauthenticated("Invalid Credentials");
+  }
+  const token = user.createJWT();
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+  res.status(StatusCodes.OK).json({ user, token });
+};
+const updateUser = async (req, res) => {
+  const { name, email, location, lastName } = req.body;
+  if (!name || !email || !location || !lastName) {
+    throw new BadRequest("Provide all details");
+  }
+  const user = await User.findById(req.user.userId);
+  if (!user) {
+    throw new NotFound("User not found");
+  }
+  user.name = name;
+  user.email = email;
+  user.location = location;
+  user.lastName = lastName;
+  await user.save();
+  const token = user.createJWT();
+  res
+    .status(StatusCodes.OK)
+    .json({
+      user: {
+        name: user.name,
+        email: user.email,
+        lastName: user.lastName,
+        location: user.location,
+      },
+      token,
+    });
+};
+module.exports = { register, login, updateUser };
+</file>
+
+<file path="db/connect.js">
+const mongoose = require("mongoose");
+
+const connect = (url) => {
+  mongoose.connect(url);
+};
+module.exports = connect;
+</file>
+
+<file path="errors/badRequest.js">
+const { StatusCodes } = require("http-status-codes");
+const CustomError = require("./customError");
+class BadRequest extends CustomError {
+  constructor(message) {
+    super(message);
+    this.statusCode = StatusCodes.BAD_REQUEST;
+  }
+}
+module.exports = BadRequest;
+</file>
+
+<file path="errors/customError.js">
+class CustomError extends Error{
+    constructor(message){
+        super(message)
+    }
+}
+module.exports = CustomError
+</file>
+
+<file path="errors/notFound.js">
+const CustomError = require("./customError");
+const { StatusCodes } = require("http-status-codes");
+class NotFound extends CustomError {
+  constructor(message) {
+    super(message);
+    this.statusCode = StatusCodes.NOT_FOUND;
+  }
+}
+module.exports = NotFound;
+</file>
+
+<file path="errors/unauthenticated.js">
+const CustomError = require("./customError");
+const { StatusCodes } = require("http-status-codes");
+class Unauthenticated extends CustomError {
+  constructor(message) {
+    super(message);
+    this.statusCode = StatusCodes.UNAUTHORIZED;
+  }
+}
+module.exports = Unauthenticated;
+</file>
+
+<file path="middleware/authenticator.js">
+const BadRequest = require("../errors/badRequest");
+const jwt = require("jsonwebtoken");
+
+const authenticator = async (req, res, next) => {
+  const token = req.cookies.token;
+  if (!token) {
+    throw new BadRequest("Please login with valid credentials");
+  }
+  try {
+    const decoder = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    req.user = { userId: decoder.userId, name: decoder.name };
+    next();
+  } catch (err) {
+    console.log(err);
+  }
+};
+module.exports = authenticator;
+</file>
+
+<file path="middleware/errorHandler.js">
+const { StatusCodes } = require("http-status-codes");
+const errorHandler = async (err, req, res, next) => {
+  console.log(err);
+  res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    msg: err.message || "Something went wrong",
+  });
+};
+module.exports = errorHandler;
+</file>
+
+<file path="middleware/notFound.js">
+const { StatusCodes } = require("http-status-codes");
+const notFound = async (req, res, next) => {
+  res.status(StatusCodes.NOT_FOUND).send("<h1>Page not found!!!</h1>");
+};
+module.exports = notFound;
+</file>
+
+<file path="model/jobs.js">
+const mongoose = require("mongoose");
+const obj = {
+  company: "Rogahn-Johnson",
+  position: "Internal Auditor",
+  status: "declined",
+  jobType: "part-time",
+  createdBy: "62f801d0510a7c1ed2312d52",
+  createdAt: "2021-09-11T10:13:12Z",
+};
+
+const JobsSchema = new mongoose.Schema(
+  {
+    company: {
+      type: String,
+      required: [true, "Please provide company name"],
+      maxlength: 50,
+    },
+    position: {
+      type: String,
+      required: [true, "Please provide the position you are applying for"],
+      maxlength: 100,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "interview", "declined"],
+      default: "pending",
+    },
+    createdBy: {
+      type: mongoose.Types.ObjectId,
+      ref: "User",
+      required: [true, "Please provide user details"],
+    },
+    jobType: {
+      type: String,
+      enum: ["part-time", "full-time", "remote", "internship"],
+      default: "full-time",
+    },
+    jobLocation: {
+      type: String,
+      default: "my city",
+      required: [true, "Provide Job location"],
+    },
+  },
+  { timestamps: true },
+);
+module.exports = mongoose.model("Job", JobsSchema);
+</file>
+
+<file path="model/user.js">
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
+const UserSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: [true, "Please provide user name"],
+    minlength: 3,
+    maxlength: 50,
+  },
+  email: {
+    type: String,
+    required: [true, "Email is required"],
+    unique: true,
+    lowercase: true,
+    trim: true,
+    match: [
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+      "Please provide a valid email address",
+    ],
+  },
+  password: {
+    type: String,
+    required: [true, "Please provide a password"],
+    minlength: 6,
+  },
+  lastName: {
+    type: String,
+    maxlength: 20,
+    trim: true,
+    default: "Last name",
+  },
+  location: {
+    type: String,
+    trim: true,
+    maxlength: 20,
+    default: "My city",
+  },
+});
+UserSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+  let salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+UserSchema.methods.createJWT = function () {
+  const secretKey = process.env.JWT_SECRET_KEY;
+  const expirydate = process.env.END_OF_LIFE;
+  const token = jwt.sign({ userId: this._id, name: this.name }, secretKey, {
+    expiresIn: expirydate,
+  });
+  return token;
+};
+UserSchema.methods.comparePassword = async function (loginPassword) {
+  const comparePassword = await bcrypt.compare(loginPassword, this.password);
+  return comparePassword;
+};
+module.exports = mongoose.model("User", UserSchema);
+</file>
+
+<file path="package.json">
+{
+  "name": "job-tracker",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "http-status-codes": "^2.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "moment": "^2.30.1",
+    "mongoose": "^9.6.3",
+    "xss": "^1.0.15"
+  }
+}
+</file>
+
+<file path="routes/jobRoute.js">
+const express = require("express");
+const jobRouter = express.Router();
+const {
+  getAllJobs,
+  createJob,
+  getOneJob,
+  updateJob,
+  deleteJob,
+  showStat,
+} = require("../controller/jobs");
+const authenticator = require("../middleware/authenticator");
+jobRouter
+  .route("/")
+  .get(authenticator, getAllJobs)
+  .post(authenticator, createJob);
+jobRouter.route("/stats").get(authenticator, showStat);
+jobRouter
+  .route("/:id")
+  .get(authenticator, getOneJob)
+  .patch(authenticator, updateJob)
+  .delete(authenticator, deleteJob);
+module.exports = jobRouter;
+</file>
+
+<file path="routes/userRoute.js">
+const express = require("express");
+const userRouter = express.Router();
+const { register, login, updateUser } = require("../controller/user");
+const authenticator = require("../middleware/authenticator");
+const rateLimiter = require("express-rate-limit");
+
+const tryLimiter = rateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: {
+    msg: "Too many request from this IP, please try again after 15mins",
+  },
+});
+userRouter.route("/register").post(tryLimiter, register);
+userRouter.route("/login").post(tryLimiter, login);
+userRouter.route("/update").patch(authenticator, updateUser);
+module.exports = userRouter;
+</file>
+
+</files>

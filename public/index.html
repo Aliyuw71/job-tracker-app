@@ -1,0 +1,1304 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CareerPath Tracker - Enterprise Job Tracker Dashboard</title>
+
+    <!-- Font Integrations -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Link external styles -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body
+    class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors duration-300 flex flex-col font-sans selection:bg-indigo-500/10 selection:text-indigo-400"
+  >
+    <!-- TOP STATUS/UTILITY BAR -->
+    <header
+      class="w-full bg-white dark:bg-slate-900 border-b border-gray-150 dark:border-slate-800/80 sticky top-0 z-30 bg-opacity-95 dark:bg-opacity-95 backdrop-blur-md"
+    >
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center gap-4"
+      >
+        <!-- LOGO & BRAND -->
+        <div class="flex items-center gap-2.5">
+          <div
+            class="p-2 rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center justify-center"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              viewBox="0 0 24 24"
+            >
+              <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+            </svg>
+          </div>
+          <div>
+            <span
+              class="text-xs font-bold leading-none uppercase tracking-widest text-indigo-650 dark:text-indigo-400 block font-mono"
+              >JobTracker</span
+            >
+            <h1
+              class="text-lg font-black text-gray-905 dark:text-white leading-none tracking-tight"
+            >
+              CareerPath
+            </h1>
+          </div>
+        </div>
+
+        <!-- INTERNET CONNECTION / ENGINE MODE PICKER -->
+        <div class="flex items-center gap-3">
+          <!-- MODE SELECTOR PILL -->
+          <div
+            class="bg-slate-100 dark:bg-slate-950 p-1 rounded-2xl border border-gray-200 dark:border-slate-800 flex items-center gap-1"
+          >
+            <button
+              id="mode-sandbox"
+              class="px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs border border-gray-150 dark:border-slate-850"
+              title="Run offline utilizing browser local state storage database"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+              <span>Sandbox Mode</span>
+            </button>
+            <button
+              id="mode-live"
+              class="px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer text-gray-500 dark:text-slate-400 hover:text-gray-905 dark:hover:text-white"
+              title="Interacts directly with your Nodemon / Node.js express APIs in real-time"
+            >
+              <span
+                class="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-600"
+                id="live-dot animate-pulse"
+              ></span>
+              <span>Live Node API</span>
+            </button>
+          </div>
+
+          <!-- THEME CONTROLLERS -->
+          <button
+            id="theme-toggle"
+            class="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-500 dark:text-slate-450 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            aria-label="Toggle Brightness Mode"
+          >
+            <!-- Moon Icon -->
+            <svg
+              id="theme-icon-moon"
+              xmlns="http://www.w3.org/2005/svg"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="text-indigo-505"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+            </svg>
+            <!-- Sun Icon -->
+            <svg
+              id="theme-icon-sun"
+              xmlns="http://www.w3.org/2005/svg"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="text-amber-500 hidden"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN VIEW CONTAINERPORTS -->
+    <main
+      class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col justify-center"
+    >
+      <!-- 1. AUTHENTICATION CONTAINER (SPLIT SCREEN LAYOUT) -->
+      <div
+        id="auth-container"
+        class="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 items-center py-6 hidden"
+      >
+        <!-- BRAND MARKETING & DOCUMENTATION PANEL -->
+        <div class="md:col-span-5 space-y-6 text-center md:text-left">
+          <div class="space-y-3">
+            <span
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-755 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/30"
+            >
+              <span
+                class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"
+              ></span>
+              <span></span>
+            </span>
+            <h2
+              class="text-3xl sm:text-4xl font-extrabold text-slate-905 dark:text-white tracking-tight leading-tight"
+            >
+              Control your
+              <span class="text-indigo-600 dark:text-indigo-400"
+                >career search</span
+              >
+              with precision.
+            </h2>
+            <p
+              class="text-sm text-gray-500 dark:text-slate-400 leading-relaxed font-medium"
+            >
+              A comprehensive web companion built specifically for the local
+              Mongoose API system. Sync resumes, track application responses,
+              and visualize statistics dynamically.
+            </p>
+          </div>
+
+          <!-- Mongoose API endpoints checklist -->
+          <!--<div
+            class="hidden sm:block border border-gray-150 dark:border-slate-800/80 rounded-2xl p-4.5 bg-white dark:bg-slate-900/40 space-y-3 text-left"
+          >
+            <span
+              class="text-[10px] uppercase font-bold tracking-widest text-slate-400 block font-mono"
+              >Mapped Express Handlers</span
+            >
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center gap-2.5">
+                <span
+                  class="font-mono px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-350"
+                  >POST</span
+                >
+                <span class="text-gray-650 dark:text-slate-350 font-mono"
+                  >/api/v1/auth/register</span
+                >
+              </div>
+              <div class="flex items-center gap-2.5">
+                <span
+                  class="font-mono px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-350"
+                  >POST</span
+                >
+                <span class="text-gray-650 dark:text-slate-350 font-mono"
+                  >/api/v1/auth/login</span
+                >
+              </div>
+              <div class="flex items-center gap-2.5">
+                <span
+                  class="font-mono px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-105 bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                  >GET</span
+                >
+                <span class="text-gray-650 dark:text-slate-350 font-mono"
+                  >/api/v1/jobs (Filters/Sorts)</span
+                >
+              </div>
+              <div class="flex items-center gap-2.5">
+                <span
+                  class="font-mono px-1.5 py-0.5 rounded text-[9px] font-bold bg-violet-100 text-violet-850 dark:bg-purple-950 dark:text-purple-300"
+                  >PATCH</span
+                >
+                <span class="text-gray-650 dark:text-slate-350 font-mono"
+                  >/api/v1/jobs/:id</span
+                >
+              </div>
+            </div>
+          </div>-->
+        </div>
+
+        <!-- INTERACTIVE LOGIN/REGISTER SHADED CARD -->
+        <div
+          class="md:col-span-7 max-w-md w-full mx-auto md:max-w-none bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800/80 shadow-md overflow-hidden"
+        >
+          <!-- Tab Switches -->
+          <div class="flex border-b border-gray-150 dark:border-slate-800">
+            <button
+              id="auth-tab-login"
+              class="flex-1 py-4 text-sm font-bold text-gray-905 dark:text-white border-b-2 border-indigo-600 bg-slate-50/40 dark:bg-slate-950/10 cursor-pointer"
+            >
+              Sign In
+            </button>
+            <button
+              id="auth-tab-register"
+              class="flex-1 py-4 text-sm font-bold text-gray-400 dark:text-slate-500 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-slate-300 cursor-pointer"
+            >
+              Create Account
+            </button>
+          </div>
+
+          <div class="p-6 sm:p-8 space-y-5">
+            <!-- Helper message -->
+            <div>
+              <h3
+                id="auth-form-title"
+                class="text-xl font-bold dark:text-white tracking-tight"
+              >
+                Login Credentials
+              </h3>
+              <p
+                id="auth-form-help"
+                class="text-xs text-gray-400 dark:text-slate-400 mt-1"
+              >
+                Provide your personal registered email credentials to load your
+                dashboard timelines.
+              </p>
+            </div>
+
+            <!-- ACTUAL CONTEXT INPUT FORM -->
+            <form id="auth-form" class="space-y-4">
+              <!-- REGISTER SPECIAL FIELDS -->
+              <div
+                id="register-special-fields"
+                class="grid grid-cols-1 sm:grid-cols-2 gap-4 hidden"
+              >
+                <!-- Name -->
+                <div class="space-y-1">
+                  <label
+                    class="text-[10px] uppercase font-extrabold tracking-wider text-gray-400 dark:text-slate-450 block"
+                    >First Name <span class="text-rose-500">*</span></label
+                  >
+                  <input
+                    type="text"
+                    id="auth-name"
+                    placeholder="John"
+                    class="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-slate-950 text-gray-950 dark:text-white border border-gray-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-505 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder-gray-400"
+                  />
+                </div>
+                <!-- LastName -->
+                <div class="space-y-1">
+                  <label
+                    class="text-[10px] uppercase font-extrabold tracking-wider text-gray-400 dark:text-slate-450 block"
+                    >Last Name</label
+                  >
+                  <input
+                    type="text"
+                    id="auth-lastname"
+                    placeholder="Doe"
+                    class="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-slate-950 text-gray-950 dark:text-white border border-gray-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder-gray-400"
+                  />
+                </div>
+                <!-- Location -->
+                <div class="col-span-2 space-y-1">
+                  <label
+                    class="text-[10px] uppercase font-extrabold tracking-wider text-gray-400 dark:text-slate-450 block"
+                    >Your Location / Residence</label
+                  >
+                  <input
+                    type="text"
+                    id="auth-location"
+                    placeholder="e.g. London, UK"
+                    class="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-slate-950 text-gray-950 dark:text-white border border-gray-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder-gray-400"
+                  />
+                </div>
+              </div>
+
+              <!-- Email field -->
+              <div class="space-y-1">
+                <label
+                  class="text-[10px] uppercase font-extrabold tracking-wider text-gray-400 dark:text-slate-450 block"
+                  >Email Address <span class="text-rose-500">*</span></label
+                >
+                <div class="relative">
+                  <span
+                    class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <rect width="20" height="16" x="2" y="4" rx="2" />
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                    </svg>
+                  </span>
+                  <input
+                    type="email"
+                    id="auth-email"
+                    required
+                    placeholder="name@company.com"
+                    class="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 dark:bg-slate-950 text-gray-950 dark:text-white border border-gray-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-501 focus:border-indigo-500 transition-all placeholder-gray-400"
+                  />
+                </div>
+              </div>
+
+              <!-- Password field -->
+              <div class="space-y-1">
+                <label
+                  class="text-[10px] uppercase font-extrabold tracking-wider text-gray-400 dark:text-slate-450 block"
+                  >Password <span class="text-rose-500">*</span></label
+                >
+                <div class="relative">
+                  <span
+                    class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </span>
+                  <input
+                    type="password"
+                    id="auth-password"
+                    required
+                    placeholder="••••••••"
+                    class="w-full pl-10 pr-10 py-2.5 bg-gray-50/50 dark:bg-slate-950 text-gray-950 dark:text-white border border-gray-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder-gray-400"
+                  />
+                  <button
+                    type="button"
+                    id="auth-password-toggle-btn"
+                    class="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-901 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
+                    tabindex="-1"
+                  >
+                    <!-- Eye Icon Open/Closed -->
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      id="auth-eye-open"
+                      class="hidden"
+                    >
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      id="auth-eye-closed"
+                    >
+                      <path
+                        d="M9.88 9.88a3 3 0 1 0 4.24 4.24M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61M1 1l22 22"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Submit action -->
+              <button
+                type="submit"
+                id="auth-submit"
+                class="w-full py-3 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl cursor-pointer shadow-md shadow-indigo-600/10 hover:shadow-indigo-600/25 active:transform active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+              >
+                <span id="auth-submit-text">Sign In</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  class="shrink-0"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. HIGH QUALITY APPLICATION DASHBOARD (SHOWN WHEN LOGGED IN) -->
+      <div id="dashboard-container" class="w-full space-y-6 hidden">
+        <!-- HERO BANNER / SESSION NAV BAR -->
+        <div
+          class="w-full bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 shadow-sm"
+        >
+          <!-- Welcome detail user profile link -->
+          <div class="flex items-center gap-3">
+            <button
+              id="profile-trigger-btn"
+              class="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400 border border-indigo-150/40 dark:border-indigo-900/30 hover:scale-[1.02] transform transition-all group cursor-pointer text-left flex items-center gap-3"
+            >
+              <span
+                class="w-9 h-9 rounded-2xl bg-indigo-600 text-white font-black text-sm flex items-center justify-center uppercase select-none tracking-tight shadow-sm"
+                id="user-avatar"
+              >
+                U
+              </span>
+              <div class="leading-none pr-2">
+                <span
+                  class="text-[9px] font-bold text-gray-400 uppercase tracking-widest block font-mono"
+                  >Active Profile</span
+                >
+                <div class="flex items-center gap-1 mt-1">
+                  <span
+                    id="dashboard-user-name"
+                    class="text-sm font-extrabold text-gray-900 dark:text-white truncate max-w-[120px] block"
+                    >User</span
+                  >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    class="text-indigo-500 opacity-60 group-hover:opacity-100 transition-opacity"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="m5 12 7-7 7 7M12 5v14" />
+                  </svg>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <!-- Filter sliders & indicators info -->
+          <div
+            class="flex flex-wrap items-center gap-3 self-end md:self-auto justify-end"
+          >
+            <!-- Sync stats loader -->
+            <button
+              id="refresh-stats-btn"
+              class="p-2 sm:px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-805 bg-white dark:bg-slate-900 flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Refresh Live Database Sync"
+            >
+              <svg
+                id="refresh-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.73"
+                />
+              </svg>
+              <span class="hidden sm:inline">Refresh Sync</span>
+            </button>
+
+            <!-- Toggle stats panel -->
+            <button
+              id="toggle-stats-visual-btn"
+              class="px-3 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                viewBox="0 0 24 24"
+              >
+                <path d="M3 3v18h18M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+              </svg>
+              <span>Timeline Analytics</span>
+            </button>
+
+            <!-- Sign Out -->
+            <button
+              id="auth-signout"
+              class="p-2 sm:px-3 py-2 text-xs font-bold rounded-xl border border-rose-150 dark:border-rose-900/30 text-rose-600 dark:text-rose-455 hover:bg-rose-50 dark:hover:bg-rose-950/20 bg-white dark:bg-slate-900 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"
+                />
+              </svg>
+              <span>Log Out</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ANALYTICS PANEL (VISUAL STATS DRAWING BOARDS) -->
+        <div
+          id="analytics-panel"
+          class="p-6 bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800/80 rounded-2xl shadow-sm grid grid-cols-1 md:grid-cols-12 gap-6 transition-all duration-300"
+        >
+          <!-- Left Stats (Mongoose GROUP aggregation results) -->
+          <div class="md:col-span-4 space-y-4">
+            <div class="space-y-1">
+              <span
+                class="text-[10px] uppercase font-bold tracking-widest text-indigo-600 dark:text-indigo-400 font-mono block leading-none"
+                >Database Aggregation</span
+              >
+              <h3 class="text-lg font-black dark:text-white leading-tight">
+                Aggregate Metrics
+              </h3>
+            </div>
+            <p
+              class="text-xs text-gray-400 dark:text-slate-450 leading-relaxed"
+            >
+              These parameters represent actual status groups computed
+              server-side via Mongo aggregation pipelines on logged database
+              collections.
+            </p>
+
+            <!-- Metrics detail labels items list -->
+            <div class="space-y-2 pt-2">
+              <!-- Pending -->
+              <div
+                class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-gray-100 dark:border-slate-800/60 font-mono text-xs"
+              >
+                <span
+                  class="flex items-center gap-2 font-sans font-bold text-gray-650 dark:text-slate-350"
+                >
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                  <span>Pending Responses</span>
+                </span>
+                <span
+                  class="font-extrabold text-sm text-amber-600 dark:text-amber-400"
+                  id="stat-val-pending"
+                  >0</span
+                >
+              </div>
+              <!-- Interview -->
+              <div
+                class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-gray-100 dark:border-slate-800/60 font-mono text-xs"
+              >
+                <span
+                  class="flex items-center gap-2 font-sans font-bold text-gray-650 dark:text-slate-350"
+                >
+                  <span
+                    class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse"
+                  ></span>
+                  <span>Interviews Scheduled</span>
+                </span>
+                <span
+                  class="font-extrabold text-sm text-purple-600 dark:text-purple-400"
+                  id="stat-val-interview"
+                  >0</span
+                >
+              </div>
+              <!-- Declined -->
+              <div
+                class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-gray-100 dark:border-slate-800/60 font-mono text-xs"
+              >
+                <span
+                  class="flex items-center gap-2 font-sans font-bold text-gray-650 dark:text-slate-350"
+                >
+                  <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                  <span>Declined / Archived</span>
+                </span>
+                <span
+                  class="font-extrabold text-sm text-rose-650 dark:text-rose-400"
+                  id="stat-val-declined"
+                  >0</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Monthly applications dynamic Visualizer graph (using SVG coordinates!) -->
+          <div class="md:col-span-8 flex flex-col justify-between space-y-4">
+            <div class="flex justify-between items-start">
+              <div class="space-y-0.5">
+                <span
+                  class="text-[9px] uppercase font-bold tracking-widest text-slate-400 font-mono block leading-none"
+                  >Temporal Overview</span
+                >
+                <h3 class="text-base font-bold dark:text-white">
+                  Monthly Application Ingestion
+                </h3>
+              </div>
+              <div
+                class="text-[10px] font-bold text-gray-450 dark:text-slate-500 font-mono"
+              >
+                6-Month Temporal Sequence
+              </div>
+            </div>
+
+            <!-- Dynamic SVG Chart container block -->
+            <div
+              class="w-full bg-slate-50 dark:bg-slate-955 rounded-2xl p-4.5 border border-gray-150 dark:border-slate-800/50 flex-1 min-h-[140px] flex items-stretch"
+            >
+              <div
+                class="w-full h-full flex flex-col justify-between"
+                id="chart-mount-box"
+              >
+                <div
+                  class="flex-1 w-full flex items-end justify-around gap-1 pt-4 relative"
+                  id="chart-bars-container"
+                >
+                  <!-- SVG horizontal lines for layout grids -->
+                  <div
+                    class="absolute inset-x-0 top-1/4 border-b border-gray-200/50 dark:border-slate-805/40 pointer-events-none"
+                  ></div>
+                  <div
+                    class="absolute inset-x-0 top-2/4 border-b border-gray-200/50 dark:border-slate-805/40 pointer-events-none"
+                  ></div>
+                  <div
+                    class="absolute inset-x-0 top-3/4 border-b border-gray-200/50 dark:border-slate-805/40 pointer-events-none"
+                  ></div>
+                  <!-- Dynamic bars will render here via javascript -->
+                </div>
+              </div>
+            </div>
+
+            <p
+              class="text-[10.5px] text-gray-400 dark:text-slate-500 leading-relaxed font-sans block"
+            >
+              * Stats sync dynamically when connected. Live Node mode processes
+              actual Mongo Aggregations on database documents.
+            </p>
+          </div>
+        </div>
+
+        <!-- MULTI-COLUMN BENTO GRID: METRICS & WORKFLOWS -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <!-- LEFT RAIL: DATA ENGINE SEARCH & FLOW MANIPULATIONS (Col size 4) -->
+          <div class="lg:col-span-4 space-y-6">
+            <!-- SEARCH & SORT CONTROLLER CARD -->
+            <div
+              class="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs space-y-4"
+            >
+              <div class="flex items-center gap-2">
+                <span
+                  class="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="15"
+                    height="15"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
+                  </svg>
+                </span>
+                <h3 class="text-sm font-extrabold dark:text-white">
+                  Workspace Filters
+                </h3>
+              </div>
+
+              <!-- SEARCH SYSTEM -->
+              <div class="space-y-1">
+                <label
+                  class="text-[9px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500"
+                  >Live Fuzzy Match</label
+                >
+                <input
+                  type="text"
+                  id="search-input"
+                  placeholder="Search position roles or company names..."
+                  class="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-slate-950 text-xs text-gray-950 dark:text-white border border-gray-205 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder-gray-400"
+                />
+              </div>
+
+              <!-- STATUS FILTER COLLAPSIBLES -->
+              <div class="space-y-1">
+                <label
+                  class="text-[9px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500"
+                  >Match Status</label
+                >
+                <select
+                  id="filter-status"
+                  class="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-slate-950 text-xs text-gray-950 dark:text-white border border-gray-205 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="interview">Interview</option>
+                  <option value="declined">Declined</option>
+                </select>
+              </div>
+
+              <!-- JOB TYPE SELECTOR -->
+              <div class="space-y-1">
+                <label
+                  class="text-[9px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500"
+                  >Work Model Type</label
+                >
+                <select
+                  id="filter-jobtype"
+                  class="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-slate-950 text-xs text-gray-950 dark:text-white border border-gray-205 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                >
+                  <option value="all">All Types</option>
+                  <option value="full-time">Full-Time</option>
+                  <option value="part-time">Part-Time</option>
+                  <option value="remote">Remote</option>
+                  <option value="internship">Internship</option>
+                </select>
+              </div>
+
+              <!-- SORT ENGINE -->
+              <div class="space-y-1">
+                <label
+                  class="text-[9px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500"
+                  >Database Ordering / Sort</label
+                >
+                <select
+                  id="filter-sort"
+                  class="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-slate-950 text-xs text-gray-950 dark:text-white border border-gray-205 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                >
+                  <option value="latest">Latest Logged First</option>
+                  <option value="oldest">Oldest Logged First</option>
+                  <option value="a-z">Position Role Name (A - Z)</option>
+                  <option value="z-a">Position Role Name (Z - A)</option>
+                </select>
+              </div>
+
+              <button
+                id="clear-filters"
+                class="w-full py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-400 hover:text-gray-905 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer"
+              >
+                Restore Clean Defaults
+              </button>
+            </div>
+
+            <!-- LAUNCH ACTIONS -->
+            <button
+              id="create-job-trigger"
+              class="w-full py-4.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm rounded-2xl shadow-md hover:shadow-lg shadow-indigo-600/15 hover:shadow-indigo-600/30 hover:scale-[1.01] transform active:scale-100 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+              >
+                <path d="M5 12h14M12 5v14" />
+              </svg>
+              <span>Log Job Listing</span>
+            </button>
+          </div>
+
+          <!-- RIGHT RAIL: JOB TRANSACTIONS MASTER BOARDS (Col size 8) -->
+          <div class="lg:col-span-8 space-y-5">
+            <!-- SEARCH RESULTS COUNTER HEADER -->
+            <div class="flex items-center justify-between">
+              <div class="space-y-0.5">
+                <h3 class="text-base font-black dark:text-white tracking-tight">
+                  Active Applications
+                </h3>
+                <p
+                  class="text-[11px] text-gray-450 dark:text-slate-450 leading-none"
+                >
+                  Database matches sorted by dynamic ordering parameters
+                </p>
+              </div>
+              <div
+                class="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-900 border border-gray-150 dark:border-slate-800 text-[10px] font-bold text-gray-500 dark:text-slate-400 font-mono"
+              >
+                Records found:
+                <span
+                  id="master-results-count"
+                  class="text-indigo-650 dark:text-indigo-400 font-extrabold"
+                  >0</span
+                >
+              </div>
+            </div>
+
+            <!-- INITIAL SYNCS LOADER -->
+            <div
+              id="jobs-list-spinner"
+              class="py-24 text-center text-gray-405 dark:text-slate-450 space-y-4 bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800/80 rounded-2xl"
+            >
+              <div class="inline-block relative w-8 h-8">
+                <div
+                  class="absolute inset-0 rounded-full border-2 border-indigo-600/20"
+                ></div>
+                <div
+                  class="absolute inset-0 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin"
+                ></div>
+              </div>
+              <p
+                class="text-xs font-bold uppercase tracking-wider text-slate-400"
+              >
+                Reading database configurations...
+              </p>
+            </div>
+
+            <!-- EMPTY TIMELINES PLACEHOLDER -->
+            <div
+              id="jobs-list-empty"
+              class="hidden py-16 text-center border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900"
+            >
+              <div class="max-w-sm mx-auto p-4 space-y-4">
+                <div
+                  class="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 flex items-center justify-center mx-auto text-gray-400 dark:text-slate-500"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="22"
+                    height="22"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                    />
+                  </svg>
+                </div>
+                <div class="space-y-1.5">
+                  <h4 class="text-sm font-bold text-gray-900 dark:text-white">
+                    Workspace Empty
+                  </h4>
+                  <p
+                    class="text-xs text-gray-500 dark:text-slate-400 leading-relaxed max-w-xs mx-auto"
+                  >
+                    No tracking logs matched those filters or search queries in
+                    your model instances. Keep pushing!
+                  </p>
+                </div>
+                <button
+                  id="empty-add-trigger"
+                  class="px-4 py-2 bg-indigo-650 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm hover:shadow active:scale-95 transition-all"
+                >
+                  Create First Record
+                </button>
+              </div>
+            </div>
+
+            <!-- CORE GRID CARDS BOARD -->
+            <div
+              id="jobs-grid-container"
+              class="grid grid-cols-1 md:grid-cols-2 gap-4"
+            >
+              <!-- Dynamic elements will be constructed here in real-time -->
+            </div>
+
+            <!-- DYNAMIC PAGINATION CONTROLS FOOTER -->
+            <div
+              id="pagination-controls"
+              class="flex justify-between items-center py-2 bg-white dark:bg-slate-900 p-4 border border-gray-150 dark:border-slate-800/85 rounded-2xl"
+            >
+              <button
+                id="pag-prev"
+                class="px-3.5 py-1.5 rounded-xl border border-gray-200 dark:border-slate-800 text-xs font-semibold text-gray-600 dark:text-slate-400 hover:bg-gray-55 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                Previous Page
+              </button>
+              <span
+                class="text-xs text-gray-450 dark:text-slate-450 font-mono font-medium"
+              >
+                Page
+                <span
+                  id="pag-current"
+                  class="font-extrabold text-gray-901 text-gray-800 dark:text-white"
+                  >1</span
+                >
+                of <span id="pag-total" class="font-bold">1</span>
+              </span>
+              <button
+                id="pag-next"
+                class="px-3.5 py-1.5 rounded-xl border border-gray-200 dark:border-slate-800 text-xs font-semibold text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                Next Page
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 3. INTERACTIVE JOB MODAL DRAWER DIALOGUE -->
+    <div
+      id="job-modal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden"
+    >
+      <!-- Overlay backdrop -->
+      <div
+        id="job-modal-backdrop"
+        class="fixed inset-0 bg-slate-900/60 dark:bg-black/90 backdrop-blur-xs"
+      ></div>
+
+      <!-- Dialog Body container -->
+      <div
+        class="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-xl overflow-hidden border border-gray-150 dark:border-slate-800/80 z-50 flex flex-col max-h-[92vh] scale-95 opacity-0 transition-transform transition-opacity duration-300 transform"
+        id="job-modal-card"
+      >
+        <!-- Upper Banner Header -->
+        <div
+          class="p-5.5 border-b border-gray-150 dark:border-slate-800/80 flex justify-between items-center bg-gray-50/40 dark:bg-slate-900/20"
+        >
+          <div class="flex items-center gap-2">
+            <div
+              class="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                class="shrink-0"
+                viewBox="0 0 24 24"
+              >
+                <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+              </svg>
+            </div>
+            <h3
+              id="job-modal-title"
+              class="text-base font-extrabold text-gray-905 dark:text-white"
+            >
+              Log Job Listing
+            </h3>
+          </div>
+          <button
+            id="job-modal-close"
+            class="p-1.5 rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            aria-label="Close form"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              viewBox="0 0 24 24"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Dialogue context forms -->
+        <form id="job-form" class="flex-1 overflow-y-auto p-5.5 space-y-4">
+          <!-- Hidden input for job identification indices tracker -->
+          <input type="hidden" id="form-job-id" />
+
+          <!-- Error banner helper inside dialog -->
+          <div
+            id="form-error-banner"
+            class="hidden p-3 bg-rose-50 text-rose-800 text-xs font-semibold rounded-xl border border-rose-100 dark:bg-rose-950/20 dark:text-rose-450 dark:border-rose-900/40"
+          ></div>
+
+          <!-- Inputs mapping Company & Title -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label
+                class="text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-slate-500"
+                >Company Name <span class="text-rose-500">*</span></label
+              >
+              <input
+                type="text"
+                id="form-company"
+                required
+                placeholder="e.g. Stripe, Google"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-gray-205 dark:border-slate-800 bg-white dark:bg-slate-950 text-gray-950 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+              />
+            </div>
+            <div class="space-y-1">
+              <label
+                class="text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-slate-500"
+                >Job Title / Position
+                <span class="text-rose-500">*</span></label
+              >
+              <input
+                type="text"
+                id="form-position"
+                required
+                placeholder="e.g. Intern, UI Specialist"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-gray-205 dark:border-slate-800 bg-white dark:bg-slate-950 text-gray-950 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+              />
+            </div>
+          </div>
+
+          <!-- Inputs mapping Status picker -->
+          <div class="space-y-1.5">
+            <label
+              class="text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-slate-500 block"
+              >Workspace Application Status</label
+            >
+            <div class="flex flex-wrap gap-2" id="form-status-selector">
+              <button
+                type="button"
+                data-val="pending"
+                class="status-btn px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer"
+              >
+                Pending
+              </button>
+              <button
+                type="button"
+                data-val="interview"
+                class="status-btn px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer"
+              >
+                Interview
+              </button>
+              <button
+                type="button"
+                data-val="declined"
+                class="status-btn px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer"
+              >
+                Declined
+              </button>
+            </div>
+          </div>
+
+          <!-- Inputs mapping Job Types picker -->
+          <div class="space-y-1.5">
+            <label
+              class="text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-slate-500 block"
+              >Job Contract Mode</label
+            >
+            <div class="flex flex-wrap gap-2" id="form-type-selector">
+              <button
+                type="button"
+                data-val="full-time"
+                class="jobtype-btn px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer"
+              >
+                Full-Time
+              </button>
+              <button
+                type="button"
+                data-val="part-time"
+                class="jobtype-btn px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer"
+              >
+                Part-Time
+              </button>
+              <button
+                type="button"
+                data-val="remote"
+                class="jobtype-btn px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer"
+              >
+                Remote
+              </button>
+              <button
+                type="button"
+                data-val="internship"
+                class="jobtype-btn px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer"
+              >
+                Internship
+              </button>
+            </div>
+          </div>
+
+          <!-- Job localization workplace location fields -->
+          <div class="space-y-1">
+            <label
+              class="text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-slate-500 block"
+              >Job Location</label
+            >
+            <input
+              type="text"
+              id="form-job-location"
+              placeholder="e.g. Remote, Cupertino"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-gray-205 dark:border-slate-800 bg-white dark:bg-slate-950 text-gray-950 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+            />
+          </div>
+
+          <!-- Dialog Footer cancel metrics -->
+          <div
+            class="pt-4 border-t border-gray-150 dark:border-slate-805/80 flex justify-end gap-3"
+          >
+            <button
+              type="button"
+              id="job-modal-cancel"
+              class="px-4 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              id="job-modal-submit"
+              class="px-5 py-2.5 text-xs font-extrabold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all cursor-pointer"
+            >
+              Track Application
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 4. INTERACTIVE PROFILE SETTINGS MODAL DIALOGUE -->
+    <div
+      id="profile-modal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden"
+    >
+      <!-- Back backdrop -->
+      <div
+        id="profile-modal-backdrop"
+        class="fixed inset-0 bg-slate-900/60 dark:bg-black/90 backdrop-blur-xs"
+      ></div>
+
+      <!-- Active envelope wrapper -->
+      <div
+        class="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-xl overflow-hidden border border-gray-150 dark:border-slate-800 z-50 flex flex-col scale-95 opacity-0 transition-all duration-300 transform"
+        id="profile-modal-card"
+      >
+        <!-- Upper Header banner -->
+        <div
+          class="p-5.5 border-b border-gray-155 dark:border-slate-800/80 flex justify-between items-center bg-gray-50/40 dark:bg-slate-900/20"
+        >
+          <div class="flex items-center gap-2">
+            <span
+              class="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+              >
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </span>
+            <h3 class="text-base font-extrabold text-slate-950 dark:text-white">
+              User Profile Settings
+            </h3>
+          </div>
+          <button
+            id="profile-modal-close"
+            class="p-1.5 rounded-lg text-gray-400 hover:text-gray-901 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              viewBox="0 0 24 24"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Content form profile details update -->
+        <form id="profile-form" class="p-5.5 space-y-4">
+          <div class="space-y-1">
+            <label
+              class="text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-slate-500"
+              >First Name <span class="text-rose-500">*</span></label
+            >
+            <input
+              type="text"
+              id="profile-name"
+              required
+              placeholder="John"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-gray-205 dark:border-slate-800 bg-white dark:bg-slate-950 text-gray-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+            />
+          </div>
+
+          <div class="space-y-1">
+            <label
+              class="text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-slate-500"
+              >Last Name</label
+            >
+            <input
+              type="text"
+              id="profile-lastname"
+              placeholder="Doe"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-gray-205 dark:border-slate-800 bg-white dark:bg-slate-950 text-gray-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+            />
+          </div>
+
+          <div class="space-y-1">
+            <label
+              class="text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-indigo-405 block"
+              >Email Address <span class="text-rose-500">*</span></label
+            >
+            <input
+              type="email"
+              id="profile-email"
+              required
+              placeholder="name@company.com"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-gray-205 dark:border-slate-800 bg-white dark:bg-slate-950 text-gray-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+            />
+          </div>
+
+          <div class="space-y-1">
+            <label
+              class="text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-slate-500"
+              >Location Workplace</label
+            >
+            <input
+              type="text"
+              id="profile-location"
+              placeholder="Sub-city"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-gray-205 dark:border-slate-800 bg-white dark:bg-slate-950 text-gray-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+            />
+          </div>
+
+          <!-- Submit controls -->
+          <div
+            class="pt-4 border-t border-gray-150 dark:border-slate-805/85 flex justify-end gap-3"
+          >
+            <button
+              type="button"
+              id="profile-modal-cancel"
+              class="px-4 py-2 text-xs font-bold rounded-xl border border-gray-200 dark:border-slate-800 text-gray-650 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              id="profile-modal-submit"
+              class="px-5 py-2.5 text-xs font-extrabold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all cursor-pointer"
+            >
+              Save Profiles
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- CENTRAL SYSTEM TOASTS ALERTS RAIL -->
+    <div
+      id="toast-rail"
+      class="fixed top-4 right-4 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none"
+    ></div>
+
+    <!-- Responsive Dashboard footer context lines -->
+    <footer
+      class="py-8 text-center text-xs text-gray-450 dark:text-slate-550 border-t border-gray-200 dark:border-slate-900 mt-auto select-none"
+    >
+      <p>
+        © 2026 CareerPath JobTracker. Polished full-stack interface compatible
+        with Node.js & Mongoose architectures.
+      </p>
+    </footer>
+
+    <!-- Interactivity controller scripts -->
+    <script src="script.js"></script>
+  </body>
+</html>
