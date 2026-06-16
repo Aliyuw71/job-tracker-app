@@ -6,7 +6,7 @@
  */
 
 // Global State
-let connectionMode = localStorage.getItem("careerpath_mode") || "sandbox"; // 'sandbox' or 'live'
+let connectionMode = "live"; // Always connect to Live REST API
 let currentUser = null; // Object containing name, email, lastName, location
 let jobs = []; // Loaded job records
 let stats = {
@@ -181,30 +181,6 @@ function showToast(message, type = "success") {
 
 // --- 3. MODE SELECTOR CONTROLLERS (SANDBOX VS LIVE API MODE) ---
 function updateModeButtons() {
-  const sandboxBtn = document.getElementById("mode-sandbox");
-  const liveBtn = document.getElementById("mode-live");
-
-  if (connectionMode === "live") {
-    sandboxBtn.className =
-      "px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer text-gray-500 dark:text-slate-400 hover:text-gray-950 dark:hover:text-white";
-    liveBtn.className =
-      "px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-indigo-600 dark:bg-indigo-900 text-white shadow-xs border border-indigo-500/20";
-    showToast(
-      "Switched to Live Node API mode. Synchronizing requests directly with backend servers.",
-      "info",
-    );
-  } else {
-    sandboxBtn.className =
-      "px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs border border-gray-150 dark:border-slate-850";
-    liveBtn.className =
-      "px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer text-gray-500 dark:text-slate-400 hover:text-gray-950 dark:hover:text-white";
-    showToast(
-      "Switched to Sandbox Mode. Storing documents cleanly in your secure browser Local Storage.",
-      "info",
-    );
-  }
-
-  localStorage.setItem("careerpath_mode", connectionMode);
   checkSession();
 }
 
@@ -325,161 +301,74 @@ async function syncData() {
   if (emptyPlaceholder) emptyPlaceholder.classList.add("hidden");
   if (listContainer) listContainer.innerHTML = "";
 
-  if (connectionMode === "live") {
-    try {
-      // 1. Fetch dynamic aggregation statistics
-      const statsResponse = await fetch("/api/v1/jobs/stats", {
-        method: "GET",
-        headers: getAuthHeaders(),
-      });
-
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        // Backend maps stats as defaultStats: { interview, pending, declined }
-        stats = {
-          interview: statsData.defaultStats?.interview || 0,
-          pending: statsData.defaultStats?.pending || 0,
-          declined: statsData.defaultStats?.declined || 0,
-        };
-        // Backend maps monthly application arrays as: monthlyApplication: [ { date, count } ]
-        monthlyApplication = statsData.monthlyApplication || [];
-      } else {
-        // Fallback error logs
-        const errMsg = await parseBackendError(statsResponse);
-        console.warn("Stats API sync skipped:", errMsg);
-      }
-
-      // 2. Fetch structural paginated lists
-      // Build search-query routes matching API requirements
-      const statusParam =
-        activeStatusFilter === "all" ? "" : activeStatusFilter;
-      const typeParam = activeTypeFilter === "all" ? "" : activeTypeFilter;
-
-      const queryParams = new URLSearchParams({
-        search: searchQuery,
-        status: statusParam,
-        jobType: typeParam,
-        sort: activeSort,
-        page: currentPage,
-        limit: 10,
-      });
-
-      const response = await fetch(`/api/v1/jobs?${queryParams.toString()}`, {
-        method: "GET",
-        headers: getAuthHeaders(),
-      });
-
-      if (response.ok) {
-        const payload = await response.json();
-        // Backend output: { jobs: [...], totalJobs: Number, numOfPages: Number }
-        jobs = payload.jobs || [];
-        totalResultsCount = payload.totalJobs || jobs.length;
-        totalPages = payload.numOfPages || 1;
-
-        renderDOM();
-      } else {
-        const errMsg = await parseBackendError(response);
-        showToast(errMsg, "error");
-        // Fallback to local sandbox mock data to avoid empty lock screen in preview!
-        showToast(
-          "Backend Server returned error code. Showing client sandbox replica data to review interface layout.",
-          "info",
-        );
-        loadSandboxFallback();
-      }
-    } catch (error) {
-      console.error("Critical API request failed:", error);
-      showToast(
-        "Could not communicate with your Live Node.js backend. Retaining interactive sandboxed emulator.",
-        "error",
-      );
-      loadSandboxFallback();
-    }
-  } else {
-    // Standard Local Storage Emulator Synchronization
-    loadSandbox();
-  }
-}
-
-function loadSandboxFallback() {
-  // Load mock presets dynamically directly into stats/tables to prevent blank iframe blocks
-  stats = {
-    interview: MOCK_PRESETS.filter((j) => j.status === "interview").length,
-    pending: MOCK_PRESETS.filter((j) => j.status === "pending").length,
-    declined: MOCK_PRESETS.filter((j) => j.status === "declined").length,
-  };
-  monthlyApplication = [...MOCK_MONTHS_PRESETS];
-  jobs = [...MOCK_PRESETS];
-  totalResultsCount = jobs.length;
-  totalPages = 1;
-  renderDOM();
-}
-
-function loadSandbox() {
-  // Load emulator collections from localStorage
-  const key = `careerpath_sandbox_jobs_${currentUser.email}`;
-  let sandboxedCollection = [];
   try {
-    const raw = localStorage.getItem(key);
-    if (raw) {
-      sandboxedCollection = JSON.parse(raw);
+    // 1. Fetch dynamic aggregation statistics
+    const statsResponse = await fetch("/api/v1/jobs/stats", {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+
+    if (statsResponse.ok) {
+      const statsData = await statsResponse.json();
+      // Backend maps stats as defaultStats: { interview, pending, declined }
+      stats = {
+        interview: statsData.defaultStats?.interview || 0,
+        pending: statsData.defaultStats?.pending || 0,
+        declined: statsData.defaultStats?.declined || 0,
+      };
+      // Backend maps monthly application arrays as: monthlyApplication: [ { date, count } ]
+      monthlyApplication = statsData.monthlyApplication || [];
     } else {
-      sandboxedCollection = [...MOCK_PRESETS];
-      localStorage.setItem(key, JSON.stringify(sandboxedCollection));
+      // Clean fallback
+      stats = { interview: 0, pending: 0, declined: 0 };
+      monthlyApplication = [];
+      const errMsg = await parseBackendError(statsResponse);
+      console.warn("Stats API sync skipped:", errMsg);
     }
-  } catch (err) {
-    sandboxedCollection = [...MOCK_PRESETS];
+
+    // 2. Fetch structural paginated lists
+    // Build search-query routes matching API requirements
+    const statusParam = activeStatusFilter === "all" ? "" : activeStatusFilter;
+    const typeParam = activeTypeFilter === "all" ? "" : activeTypeFilter;
+
+    const queryParams = new URLSearchParams({
+      search: searchQuery,
+      status: statusParam,
+      jobType: typeParam,
+      sort: activeSort,
+      page: currentPage,
+      limit: 10,
+    });
+
+    const response = await fetch(`/api/v1/jobs?${queryParams.toString()}`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+
+    if (response.ok) {
+      const payload = await response.json();
+      // Backend output: { jobs: [...], totalJobs: Number, numOfPages: Number }
+      jobs = payload.jobs || [];
+      totalResultsCount = payload.totalJobs || jobs.length;
+      totalPages = payload.numOfPages || 1;
+
+      renderDOM();
+    } else {
+      const errMsg = await parseBackendError(response);
+      showToast(errMsg, "error");
+      jobs = [];
+      totalResultsCount = 0;
+      totalPages = 1;
+      renderDOM();
+    }
+  } catch (error) {
+    console.error("Critical API request failed:", error);
+    showToast("Could not communicate with your Live Node.js backend.", "error");
+    jobs = [];
+    totalResultsCount = 0;
+    totalPages = 1;
+    renderDOM();
   }
-
-  // Calculate aggregation fields
-  stats = {
-    pending: sandboxedCollection.filter((j) => j.status === "pending").length,
-    interview: sandboxedCollection.filter((j) => j.status === "interview")
-      .length,
-    declined: sandboxedCollection.filter((j) => j.status === "declined").length,
-  };
-
-  // Pre-fill monthly application count graph
-  monthlyApplication = [...MOCK_MONTHS_PRESETS];
-
-  // Perform local search, filtering and sorting mimicking database pipelines
-  let results = sandboxedCollection.filter((job) => {
-    const matchesStatus =
-      activeStatusFilter === "all" || job.status === activeStatusFilter;
-    const matchesType =
-      activeTypeFilter === "all" || job.jobType === activeTypeFilter;
-
-    const matchesSearch =
-      !searchQuery ||
-      job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (job.jobLocation &&
-        job.jobLocation.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    return matchesStatus && matchesType && matchesSearch;
-  });
-
-  // Database ordering
-  if (activeSort === "latest") {
-    results.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  } else if (activeSort === "oldest") {
-    results.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-  } else if (activeSort === "a-z") {
-    results.sort((a, b) => a.position.localeCompare(b.position));
-  } else if (activeSort === "z-a") {
-    results.sort((a, b) => b.position.localeCompare(a.position));
-  }
-
-  // Local Pagination
-  totalResultsCount = results.length;
-  const itemsPerPage = 8;
-  totalPages = Math.max(Math.ceil(totalResultsCount / itemsPerPage), 1);
-  if (currentPage > totalPages) currentPage = totalPages;
-
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  jobs = results.slice(startIndex, startIndex + itemsPerPage);
-
-  renderDOM();
 }
 
 // --- 6. RENDER LAYOUT CONTROLLER (DOM POPULATOR) ---
@@ -681,7 +570,28 @@ function drawSvgGraph() {
 
   // Render month bars using computed aggregate lengths
   if (monthlyApplication.length === 0) {
-    monthlyApplication = [...MOCK_MONTHS_PRESETS];
+    const listMonths = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const now = new Date();
+    monthlyApplication = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const mName = listMonths[d.getMonth()];
+      const yVal = d.getFullYear();
+      monthlyApplication.push({ date: `${mName} ${yVal}`, count: 0 });
+    }
   }
 
   const maxVal = Math.max(...monthlyApplication.map((item) => item.count), 1);
@@ -738,122 +648,81 @@ async function handleAuthSubmit(event) {
   }
 
   // Live Server Authenticator
-  if (connectionMode === "live") {
-    if (isRegistering) {
-      const name = document.getElementById("auth-name").value.trim();
-      const lastName =
-        document.getElementById("auth-lastname").value.trim() || "Last Name";
-      const location =
-        document.getElementById("auth-location").value.trim() || "My City";
+  if (isRegistering) {
+    const name = document.getElementById("auth-name").value.trim();
+    const lastName =
+      document.getElementById("auth-lastname").value.trim() || "Last Name";
+    const location =
+      document.getElementById("auth-location").value.trim() || "My City";
 
-      if (!name) {
+    if (!name) {
+      showToast(
+        "First Name attribute is required to instantiate accounts.",
+        "error",
+      );
+      return;
+    }
+
+    try {
+      const payload = { name, email, password, lastName, location };
+      const response = await fetch("/api/v1/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Backend output: { user: { name, email, lastName, location }, token }
+        localStorage.setItem("careerpath_token", data.token);
+        localStorage.setItem("careerpath_user", JSON.stringify(data.user));
+
+        currentUser = data.user;
         showToast(
-          "First Name attribute is required to instantiate accounts.",
-          "error",
+          `Account created successfully! Welcome, ${currentUser.name}.`,
         );
-        return;
+        event.target.reset();
+        loadDashboard();
+      } else {
+        const errMsg = await parseBackendError(response);
+        showToast(errMsg, "error");
       }
-
-      try {
-        const payload = { name, email, password, lastName, location };
-        const response = await fetch("/api/v1/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          // Backend output: { user: { name, email, lastName, location }, token }
-          localStorage.setItem("careerpath_token", data.token);
-          localStorage.setItem("careerpath_user", JSON.stringify(data.user));
-
-          currentUser = data.user;
-          showToast(
-            `Account created successfully! Welcome, ${currentUser.name}.`,
-          );
-          event.target.reset();
-          loadDashboard();
-        } else {
-          const errMsg = await parseBackendError(response);
-          showToast(errMsg, "error");
-        }
-      } catch (err) {
-        console.error(err);
-        showToast(
-          "Could not communicate with Account Services. Server appears down on Port 3000.",
-          "error",
-        );
-      }
-    } else {
-      // Login flow
-      try {
-        const payload = { email, password };
-        const response = await fetch("/api/v1/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          localStorage.setItem("careerpath_token", data.token);
-          localStorage.setItem("careerpath_user", JSON.stringify(data.user));
-
-          currentUser = data.user;
-          showToast(`Signed-in successfully! Syncing records.`);
-          event.target.reset();
-          loadDashboard();
-        } else {
-          const errMsg = await parseBackendError(response);
-          showToast(errMsg, "error");
-        }
-      } catch (err) {
-        console.error(err);
-        showToast(
-          "Could not sync authentication. Verify that your Mongoose local instance is active.",
-          "error",
-        );
-      }
+    } catch (err) {
+      console.error(err);
+      showToast(
+        "Could not communicate with Account Services. Server appears down on Port 3000.",
+        "error",
+      );
     }
   } else {
-    // Sandbox emulator authenticator
-    if (isRegistering) {
-      const name =
-        document.getElementById("auth-name").value.trim() ||
-        email.split("@")[0];
-      const lastName =
-        document.getElementById("auth-lastname").value.trim() || "Lastname";
-      const location =
-        document.getElementById("auth-location").value.trim() || "Remoteville";
+    // Login flow
+    try {
+      const payload = { email, password };
+      const response = await fetch("/api/v1/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-      const userObject = { name, email, lastName, location };
-      localStorage.setItem(
-        "careerpath_sandbox_user",
-        JSON.stringify(userObject),
-      );
-      currentUser = userObject;
-      showToast("A account was successfully created locally in Sandbox Mode.");
-      event.target.reset();
-      loadDashboard();
-    } else {
-      // Mock log in
-      const defaultUserObject = {
-        name: email.split("@")[0],
-        email: email,
-        lastName: "Developer",
-        location: "Co-working Office",
-      };
-      localStorage.setItem(
-        "careerpath_sandbox_user",
-        JSON.stringify(defaultUserObject),
-      );
-      currentUser = defaultUserObject;
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem("careerpath_token", data.token);
+        localStorage.setItem("careerpath_user", JSON.stringify(data.user));
+
+        currentUser = data.user;
+        showToast(`Signed-in successfully! Syncing records.`);
+        event.target.reset();
+        loadDashboard();
+      } else {
+        const errMsg = await parseBackendError(response);
+        showToast(errMsg, "error");
+      }
+    } catch (err) {
+      console.error(err);
       showToast(
-        `Logged in successfully inside local emulator workspace. Welcome!`,
+        "Could not sync authentication. Verify that your Mongoose local instance is active.",
+        "error",
       );
-      event.target.reset();
-      loadDashboard();
     }
   }
 }
@@ -1013,57 +882,38 @@ async function handleProfileSubmit(event) {
     return;
   }
 
-  if (connectionMode === "live") {
-    try {
-      const payload = { name, lastName, email, location };
-      const response = await fetch("/api/v1/auth/update", {
-        method: "PATCH",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
-      });
+  try {
+    const payload = { name, lastName, email, location };
+    const response = await fetch("/api/v1/auth/update", {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        // Returns { user: { name, email, lastName, location }, token }
-        localStorage.setItem("careerpath_token", data.token);
-        localStorage.setItem("careerpath_user", JSON.stringify(data.user));
+    if (response.ok) {
+      const data = await response.json();
+      // Returns { user: { name, email, lastName, location }, token }
+      localStorage.setItem("careerpath_token", data.token);
+      localStorage.setItem("careerpath_user", JSON.stringify(data.user));
 
-        currentUser = data.user;
-        document.getElementById("dashboard-user-name").innerText =
-          currentUser.name;
-        document.getElementById("user-avatar").innerText = currentUser.name
-          .charAt(0)
-          .toUpperCase();
+      currentUser = data.user;
+      document.getElementById("dashboard-user-name").innerText =
+        currentUser.name;
+      document.getElementById("user-avatar").innerText = currentUser.name
+        .charAt(0)
+        .toUpperCase();
 
-        showToast("Profile data synchronized successfully.");
-        event.target.reset();
-        closeProfileModal();
-        syncData();
-      } else {
-        const errMsg = await parseBackendError(response);
-        showToast(errMsg, "error");
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Failed to connect to profile servers on Port 3000.", "error");
+      showToast("Profile data synchronized successfully.");
+      event.target.reset();
+      closeProfileModal();
+      syncData();
+    } else {
+      const errMsg = await parseBackendError(response);
+      showToast(errMsg, "error");
     }
-  } else {
-    // Sandbox save
-    currentUser = { name, lastName, email, location };
-    localStorage.setItem(
-      "careerpath_sandbox_user",
-      JSON.stringify(currentUser),
-    );
-
-    document.getElementById("dashboard-user-name").innerText = currentUser.name;
-    document.getElementById("user-avatar").innerText = currentUser.name
-      .charAt(0)
-      .toUpperCase();
-
-    showToast("Profile credentials written to sandbox memory.");
-    event.target.reset();
-    closeProfileModal();
-    syncData();
+  } catch (err) {
+    console.error(err);
+    showToast("Failed to connect to profile servers on Port 3000.", "error");
   }
 }
 
@@ -1097,105 +947,53 @@ async function handleJobSubmit(event) {
     return;
   }
 
-  if (connectionMode === "live") {
-    try {
-      const payload = { company, position, status, jobType, jobLocation };
+  try {
+    const payload = { company, position, status, jobType, jobLocation };
 
-      // Since the API only returns job structure, the auxiliary data can be submitted.
-      // Safe to pass additional model attributes, we can save them as well!
-      payload.salary = salary;
-      payload.url = url;
-      payload.notes = notes;
+    // Since the API only returns job structure, the auxiliary data can be submitted.
+    // Safe to pass additional model attributes, we can save them as well!
+    payload.salary = salary;
+    payload.url = url;
+    payload.notes = notes;
 
-      let response;
-      if (jobId) {
-        // Update model patch
-        response = await fetch(`/api/v1/jobs/${jobId}`, {
-          method: "PATCH",
-          headers: getAuthHeaders(),
-          body: JSON.stringify(payload),
-        });
-      } else {
-        // Create model post
-        response = await fetch("/api/v1/jobs", {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify(payload),
-        });
-      }
-
-      if (response.ok) {
-        showToast(
-          jobId
-            ? "Updated listing parameters on database server."
-            : "Successfully tracked next job on system server.",
-        );
-        event.target.reset();
-        closeJobModal();
-        syncData();
-      } else {
-        const errorMsg = await parseBackendError(response);
-        document.getElementById("form-error-banner").innerText = errorMsg;
-        document.getElementById("form-error-banner").classList.remove("hidden");
-        showToast(errorMsg, "error");
-      }
-    } catch (err) {
-      console.error(err);
-      showToast(
-        "Failing to submit. Verify your API middleware authentication settings.",
-        "error",
-      );
-    }
-  } else {
-    // Sandbox mode CRUD
-    const key = `careerpath_sandbox_jobs_${currentUser.email}`;
-    let items = [];
-    try {
-      items = JSON.parse(localStorage.getItem(key)) || [];
-    } catch (e) {
-      items = [];
-    }
-
+    let response;
     if (jobId) {
-      const index = items.findIndex((j) => j._id === jobId);
-      if (index !== -1) {
-        items[index] = {
-          _id: jobId,
-          company,
-          position,
-          status,
-          jobType,
-          jobLocation,
-          appliedDate: new Date().toISOString().split("T")[0],
-          createdAt: items[index].createdAt || new Date().toISOString(),
-          salary,
-          url,
-          notes,
-        };
-        showToast("Logged modification inside emulator datastore.");
-      }
+      // Update model patch
+      response = await fetch(`/api/v1/jobs/${jobId}`, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
     } else {
-      const newItem = {
-        _id: "job-" + Date.now(),
-        company,
-        position,
-        status,
-        jobType,
-        jobLocation,
-        appliedDate: new Date().toISOString().split("T")[0],
-        createdAt: new Date().toISOString(),
-        salary,
-        url,
-        notes,
-      };
-      items.unshift(newItem);
-      showToast("Added tracking event record into sandbox timeline.");
+      // Create model post
+      response = await fetch("/api/v1/jobs", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
     }
 
-    localStorage.setItem(key, JSON.stringify(items));
-    event.target.reset();
-    closeJobModal();
-    syncData();
+    if (response.ok) {
+      showToast(
+        jobId
+          ? "Updated listing parameters on database server."
+          : "Successfully tracked next job on system server.",
+      );
+      event.target.reset();
+      closeJobModal();
+      syncData();
+    } else {
+      const errorMsg = await parseBackendError(response);
+      document.getElementById("form-error-banner").innerText = errorMsg;
+      document.getElementById("form-error-banner").classList.remove("hidden");
+      showToast(errorMsg, "error");
+    }
+  } catch (err) {
+    console.error(err);
+    showToast(
+      "Failing to submit. Verify your API middleware authentication settings.",
+      "error",
+    );
   }
 }
 
@@ -1215,35 +1013,25 @@ async function triggerDeleteRecord(id) {
       `Do you wish to permanently remove tracking for "${match.company}"?`,
     )
   ) {
-    if (connectionMode === "live") {
-      try {
-        const response = await fetch(`/api/v1/jobs/${id}`, {
-          method: "DELETE",
-          headers: getAuthHeaders(),
-        });
+    try {
+      const response = await fetch(`/api/v1/jobs/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
 
-        if (response.ok) {
-          showToast(`Purged application with ${match.company} from DB.`);
-          syncData();
-        } else {
-          const errMsg = await parseBackendError(response);
-          showToast(errMsg, "error");
-        }
-      } catch (err) {
-        console.error(err);
-        showToast(
-          "Error processing. Verify DB network ingress configurations.",
-          "error",
-        );
+      if (response.ok) {
+        showToast(`Purged application with ${match.company} from DB.`);
+        syncData();
+      } else {
+        const errMsg = await parseBackendError(response);
+        showToast(errMsg, "error");
       }
-    } else {
-      // Sandbox delete
-      const key = `careerpath_sandbox_jobs_${currentUser.email}`;
-      let items = JSON.parse(localStorage.getItem(key)) || [];
-      items = items.filter((j) => j._id !== id);
-      localStorage.setItem(key, JSON.stringify(items));
-      showToast(`Removed application with ${match.company} from sandbox.`);
-      syncData();
+    } catch (err) {
+      console.error(err);
+      showToast(
+        "Error processing. Verify DB network ingress configurations.",
+        "error",
+      );
     }
   }
 }
@@ -1261,21 +1049,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   const themeToggle = document.getElementById("theme-toggle");
   if (themeToggle) themeToggle.addEventListener("click", toggleTheme);
-
-  // 2. Switched connection formats
-  const sandBtn = document.getElementById("mode-sandbox");
-  const liveBtn = document.getElementById("mode-live");
-
-  if (sandBtn)
-    sandBtn.addEventListener("click", () => {
-      connectionMode = "sandbox";
-      updateModeButtons();
-    });
-  if (liveBtn)
-    liveBtn.addEventListener("click", () => {
-      connectionMode = "live";
-      updateModeButtons();
-    });
 
   // 3. Tab selectors inside Auth window
   const tabLogin = document.getElementById("auth-tab-login");
@@ -1522,7 +1295,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Load first state setup modes
-  localStorage.setItem("careerpath_mode", connectionMode);
+  // Check active session and authenticate user
   updateModeButtons();
 });
