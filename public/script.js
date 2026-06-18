@@ -282,6 +282,26 @@ function clearAuthData() {
   }
   currentUser = null;
   jobs = [];
+  stats = {
+    interview: 0,
+    pending: 0,
+    declined: 0,
+  };
+  monthlyApplication = [];
+
+  // Clear core dashboard metrics in the UI instantly to prevent stale render flashes
+  const pendingEl = document.getElementById("stat-val-pending");
+  const interviewEl = document.getElementById("stat-val-interview");
+  const declinedEl = document.getElementById("stat-val-declined");
+  if (pendingEl) pendingEl.innerText = "0";
+  if (interviewEl) interviewEl.innerText = "0";
+  if (declinedEl) declinedEl.innerText = "0";
+
+  const listContainer = document.getElementById("jobs-grid-container");
+  if (listContainer) listContainer.innerHTML = "";
+
+  const chartContainer = document.getElementById("chart-bars-container");
+  if (chartContainer) chartContainer.innerHTML = "";
 }
 
 function handleLogOut() {
@@ -672,17 +692,75 @@ async function handleAuthSubmit(event) {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        // Backend output: { user: { name, email, lastName, location }, token }
-        localStorage.setItem("careerpath_token", data.token);
-        localStorage.setItem("careerpath_user", JSON.stringify(data.user));
+        showToast("Account created successfully! Syncing session...");
 
-        currentUser = data.user;
-        showToast(
-          `Account created successfully! Welcome, ${currentUser.name}.`,
-        );
-        event.target.reset();
-        loadDashboard();
+        // Dynamic fallback verification parsing
+        let data;
+        try {
+          data = await response.json();
+        } catch (_) {}
+
+        // Auto-login immediately after registration to fully refresh cookies and session state
+        try {
+          const loginPayload = { email, password };
+          const loginResponse = await fetch("/api/v1/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(loginPayload),
+          });
+
+          if (loginResponse.ok) {
+            const loginData = await loginResponse.json();
+            localStorage.setItem("careerpath_token", loginData.token);
+            localStorage.setItem(
+              "careerpath_user",
+              JSON.stringify(loginData.user),
+            );
+            currentUser = loginData.user;
+
+            showToast(`Welcome, ${currentUser.name}!`);
+            event.target.reset();
+            loadDashboard();
+          } else {
+            throw new Error(
+              "Direct login response rejected after registration success.",
+            );
+          }
+        } catch (loginErr) {
+          console.warn("Auto-login pipeline warning:", loginErr);
+
+          // Resilient Fallback: use register payload directly if login is delayed/errored
+          if (data) {
+            const finalToken = data.token || (data.user && data.user.token);
+            const finalUser = data.user || { name, email, lastName, location };
+
+            if (finalToken) {
+              localStorage.setItem("careerpath_token", finalToken);
+              localStorage.setItem(
+                "careerpath_user",
+                JSON.stringify(finalUser),
+              );
+              currentUser = finalUser;
+              showToast(`Welcome, ${currentUser.name}!`);
+              event.target.reset();
+              loadDashboard();
+            } else {
+              showToast(
+                "Registration completed. Please sign in to verify your credentials.",
+                "info",
+              );
+              const tabLogin = document.getElementById("auth-tab-login");
+              if (tabLogin) tabLogin.click();
+            }
+          } else {
+            showToast(
+              "Registration completed. Please sign in to verify your credentials.",
+              "info",
+            );
+            const tabLogin = document.getElementById("auth-tab-login");
+            if (tabLogin) tabLogin.click();
+          }
+        }
       } else {
         const errMsg = await parseBackendError(response);
         showToast(errMsg, "error");
